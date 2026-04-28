@@ -1,0 +1,6 @@
+heads:
+  use_geometry: true
+  use_place: true
+  use_relation: true
+  use_prediction: true
+  use_belief: true

@@ -1,0 +1,15 @@
+model:
+  obs_shape: [3, 64, 64]
+  obs_dim: 12288
+  action_dim: 8
+  hidden_dim: 256
+  latent_dim: 64
+  token_dim: 128
+  graph_tokens: 16
+  use_spiking_core: false
+loss_weights:
+  L_rec: 1.0
+  L_place: 0.5
+  L_topo: 0.5
+  L_unc: 0.3
+  L_goal: 0.3
