@@ -1,5 +1,6 @@
 model:
-  obs_dim: 256
+  obs_shape: [3, 64, 64]
+  obs_dim: 12288
   action_dim: 8
   hidden_dim: 256
   latent_dim: 64
