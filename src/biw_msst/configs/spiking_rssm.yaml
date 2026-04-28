@@ -1,0 +1,5 @@
+model:
+  use_spiking_core: true
+  hidden_dim: 256
+  latent_dim: 64
+notes: "Hybrid spiking RSSM transition core"
