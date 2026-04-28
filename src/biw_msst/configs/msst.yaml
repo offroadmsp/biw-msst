@@ -1,0 +1,5 @@
+model:
+  token_dim: 192
+  graph_tokens: 24
+  use_spiking_core: false
+notes: "Multi-scale ST Transformer ablation config"
