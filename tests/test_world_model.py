@@ -5,18 +5,11 @@ from biw_msst.world_model.rssm import balanced_kl
 
 
 def test_world_model_observe_and_decode_smoke():
-    cfg = WorldModelConfig(
-        obs_shape=(3, 64, 64),
-        obs_dim=3 * 64 * 64,
-        action_dim=6,
-        hidden_dim=64,
-        latent_dim=16,
-        token_dim=32,
-    )
+    cfg = WorldModelConfig(obs_dim=48, action_dim=6, hidden_dim=64, latent_dim=16, token_dim=32)
     model = WorldModel(cfg)
 
     batch, time = 4, 8
-    obs = torch.randn(batch, time, *cfg.obs_shape)
+    obs = torch.randn(batch, time, cfg.obs_dim)
     action = torch.randn(batch, cfg.action_dim)
 
     state0 = model.init_state(batch, obs.device)
@@ -33,8 +26,7 @@ def test_world_model_observe_and_decode_smoke():
 
 def test_world_model_spiking_mode_smoke():
     cfg = WorldModelConfig(
-        obs_shape=(3, 64, 64),
-        obs_dim=3 * 64 * 64,
+        obs_dim=48,
         action_dim=6,
         hidden_dim=64,
         latent_dim=16,
@@ -43,7 +35,7 @@ def test_world_model_spiking_mode_smoke():
     )
     model = WorldModel(cfg)
     batch, time = 2, 8
-    obs = torch.randn(batch, time, *cfg.obs_shape)
+    obs = torch.randn(batch, time, cfg.obs_dim)
     action = torch.randn(batch, cfg.action_dim)
     state = model.init_state(batch, obs.device)
     next_state, _, _ = model.observe(obs, action, state)

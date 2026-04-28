@@ -11,37 +11,9 @@ from .state import MultiScaleState, init_state
 from .state_heads import StructuredStateHeads
 
 
-class VisionEncoder(nn.Module):
-    """用于 Go-Stanford 图像特征提取的 CNN。"""
-
-    def __init__(self, obs_shape: tuple[int, int, int] = (3, 64, 64), token_dim: int = 128):
-        super().__init__()
-        self.obs_shape = obs_shape
-        self.net = nn.Sequential(
-            nn.Conv2d(obs_shape[0], 32, 4, stride=2),
-            nn.ReLU(),
-            nn.Conv2d(32, 64, 4, stride=2),
-            nn.ReLU(),
-            nn.Conv2d(64, 128, 4, stride=2),
-            nn.ReLU(),
-            nn.Conv2d(128, token_dim, 4, stride=2),
-            nn.ReLU(),
-            nn.Flatten(),
-        )
-
-    def forward(self, obs: torch.Tensor) -> torch.Tensor:
-        # [B, T, C, H, W] -> [B*T, C, H, W] -> [B, T, D]
-        if obs.dim() == 5:
-            bsz, tsz, channels, height, width = obs.shape
-            x = self.net(obs.reshape(bsz * tsz, channels, height, width))
-            return x.reshape(bsz, tsz, -1)
-        return self.net(obs)
-
-
 @dataclass
 class WorldModelConfig:
-    obs_shape: tuple[int, int, int] = (3, 64, 64)
-    obs_dim: int = 12288
+    obs_dim: int = 256
     action_dim: int = 8
     hidden_dim: int = 256
     latent_dim: int = 64
@@ -56,7 +28,12 @@ class WorldModel(nn.Module):
     def __init__(self, cfg: WorldModelConfig):
         super().__init__()
         self.cfg = cfg
-        self.encoder = VisionEncoder(obs_shape=cfg.obs_shape, token_dim=cfg.token_dim)
+        self.encoder = nn.Sequential(
+            nn.LayerNorm(cfg.obs_dim),
+            nn.Linear(cfg.obs_dim, cfg.token_dim),
+            nn.GELU(),
+            nn.Linear(cfg.token_dim, cfg.token_dim),
+        )
         self.fast_pool = nn.Identity()
         self.med_pool = nn.AvgPool1d(kernel_size=2, stride=2)
         self.slow_pool = nn.AvgPool1d(kernel_size=4, stride=4)
