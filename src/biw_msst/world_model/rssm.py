@@ -69,28 +69,22 @@ class HierarchicalRSSM(nn.Module):
 
     def observe(self, enc: torch.Tensor, action: torch.Tensor, prev: MultiScaleState) -> tuple[MultiScaleState, RSSMStats]:
         if self.use_spiking_core and self.spiking is not None and self.fast_proj is not None:
-            spk_prev = MCNState(prev.h_fast, prev.h_fast, prev.h_fast, prev.h_fast)
+            spk_prev = MCNState(prev.h_fast, prev.h_fast, prev.h_fast, prev.z_fast)
             spk = self.spiking(torch.cat([enc, action], dim=-1), prev.z_slow, spk_prev)
             h_fast_seed = self.fast_proj(spk.v_soma)
-            event_trigger = (spk.spikes.mean(dim=-1, keepdim=True) > 0).to(enc.dtype)
         else:
             h_fast_seed = prev.h_fast
-            event_trigger = torch.ones(enc.shape[0], 1, device=enc.device, dtype=enc.dtype)
 
         h_fast, zf_prior, zf_mu_p, zf_lv_p = self.fast.forward_prior(enc, action, h_fast_seed)
         zf_post, zf_mu_q, zf_lv_q = self.fast.forward_post(enc, h_fast)
 
         med_in = torch.cat([enc, zf_post], dim=-1)
-        h_med_new, zm_prior, zm_mu_p, zm_lv_p = self.med.forward_prior(med_in, action, prev.h_med)
-        zm_post_new, zm_mu_q, zm_lv_q = self.med.forward_post(med_in, h_med_new)
-        h_med = h_med_new * event_trigger + prev.h_med * (1 - event_trigger)
-        zm_post = zm_post_new * event_trigger + prev.z_med * (1 - event_trigger)
+        h_med, zm_prior, zm_mu_p, zm_lv_p = self.med.forward_prior(med_in, action, prev.h_med)
+        zm_post, zm_mu_q, zm_lv_q = self.med.forward_post(med_in, h_med)
 
         slow_in = torch.cat([enc, zm_post], dim=-1)
-        h_slow_new, zs_prior, zs_mu_p, zs_lv_p = self.slow.forward_prior(slow_in, action, prev.h_slow)
-        zs_post_new, zs_mu_q, zs_lv_q = self.slow.forward_post(slow_in, h_slow_new)
-        h_slow = h_slow_new * event_trigger + prev.h_slow * (1 - event_trigger)
-        zs_post = zs_post_new * event_trigger + prev.z_slow * (1 - event_trigger)
+        h_slow, zs_prior, zs_mu_p, zs_lv_p = self.slow.forward_prior(slow_in, action, prev.h_slow)
+        zs_post, zs_mu_q, zs_lv_q = self.slow.forward_post(slow_in, h_slow)
 
         uncertainty = self._uncertainty(zf_lv_q, zm_lv_q, zs_lv_q)
         state = MultiScaleState(h_fast, h_med, h_slow, zf_post, zm_post, zs_post, uncertainty)
